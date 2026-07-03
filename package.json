@@ -1,0 +1,18 @@
+{
+  "name": "kick-keyword-wheel-vote-chat-method",
+  "version": "3.0.0",
+  "description": "Kick keyword giveaway wheel using the same WebSocket chat method as the vote bot",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
