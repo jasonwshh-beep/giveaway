@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Giveaway Wheel Overlay</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+:root{
+  --purple:#8b5cf6;
+  --purple2:#c084fc;
+  --bg:#130724;
+  --card:#1e0b3d;
+  --white:#fff;
+  --muted:#d9ccff;
+}
+*{box-sizing:border-box}
+html,body{
+  margin:0;width:100%;height:100%;
+  background:transparent;
+  overflow:hidden;
+  font-family:Inter,system-ui,Arial,sans-serif;
+}
+.overlay{
+  width:430px;
+  min-height:560px;
+  margin:0;
+  border-radius:30px;
+  padding:18px;
+  color:white;
+  background:
+    radial-gradient(circle at 50% 0%,rgba(192,132,252,.38),transparent 35%),
+    linear-gradient(180deg,rgba(34,12,69,.98),rgba(13,5,28,.98));
+  border:2px solid rgba(255,255,255,.18);
+  box-shadow:0 22px 70px rgba(0,0,0,.55), inset 0 0 45px rgba(139,92,246,.2);
+  position:relative;
+}
+.header{
+  text-align:center;
+  padding:8px 8px 12px;
+}
+.title{
+  font-size:29px;
+  font-weight:1000;
+  letter-spacing:-.04em;
+  line-height:.95;
+  text-transform:uppercase;
+  text-shadow:0 0 18px rgba(192,132,252,.7);
+}
+.keyword{
+  display:inline-flex;
+  margin-top:9px;
+  padding:8px 16px;
+  border-radius:999px;
+  background:rgba(255,255,255,.1);
+  border:1px solid rgba(255,255,255,.2);
+  color:#f5f3ff;
+  font-weight:1000;
+  font-size:20px;
+}
+.count{
+  margin-top:8px;
+  color:var(--muted);
+  font-size:14px;
+  font-weight:800;
+}
+.wheelBox{
+  width:348px;height:348px;
+  margin:8px auto 0;
+  position:relative;
+  display:grid;
+  place-items:center;
+}
+.pointer{
+  position:absolute;
+  top:-2px;left:50%;transform:translateX(-50%);
+  width:0;height:0;z-index:5;
+  border-left:17px solid transparent;
+  border-right:17px solid transparent;
+  border-top:34px solid white;
+  filter:drop-shadow(0 0 10px rgba(255,255,255,.7));
+}
+.wheel{
+  width:320px;height:320px;border-radius:50%;
+  background:conic-gradient(
+    from 0deg,
+    #7c3aed 0 20deg,#ffffff 20deg 40deg,#a855f7 40deg 60deg,#ede9fe 60deg 80deg,
+    #6d28d9 80deg 100deg,#ffffff 100deg 120deg,#8b5cf6 120deg 140deg,#ddd6fe 140deg 160deg,
+    #7c3aed 160deg 180deg,#ffffff 180deg 200deg,#a855f7 200deg 220deg,#ede9fe 220deg 240deg,
+    #6d28d9 240deg 260deg,#ffffff 260deg 280deg,#8b5cf6 280deg 300deg,#ddd6fe 300deg 320deg,
+    #7c3aed 320deg 340deg,#ffffff 340deg 360deg
+  );
+  border:8px solid rgba(255,255,255,.9);
+  box-shadow:0 0 0 7px rgba(139,92,246,.38),0 0 50px rgba(139,92,246,.55);
+  transition:transform 5s cubic-bezier(.08,.85,.12,1);
+  position:relative;
+  overflow:hidden;
+}
+.wheel:after{
+  content:"";
+  position:absolute;inset:48px;border-radius:50%;
+  background:linear-gradient(180deg,#2b1050,#140628);
+  border:4px solid rgba(255,255,255,.75);
+  box-shadow:inset 0 0 25px rgba(0,0,0,.65);
+}
+.centerText{
+  position:absolute;
+  width:215px;height:215px;border-radius:50%;
+  display:grid;place-items:center;text-align:center;z-index:3;
+  padding:18px;
+}
+.centerText .small{
+  color:#d8b4fe;font-weight:900;font-size:14px;text-transform:uppercase;letter-spacing:.06em;
+}
+.centerText .winner{
+  font-size:30px;font-weight:1000;line-height:1.05;word-break:break-word;text-shadow:0 0 20px rgba(192,132,252,.7);
+}
+.centerText .idle{
+  font-size:24px;font-weight:1000;line-height:1.05;
+}
+.strip{
+  margin:12px auto 0;
+  width:370px;height:72px;
+  border-radius:18px;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.16);
+  overflow:hidden;
+  position:relative;
+}
+.names{
+  position:absolute;left:0;top:0;
+  display:flex;align-items:center;height:72px;
+  transition:transform 5s cubic-bezier(.08,.85,.12,1);
+}
+.nameItem{
+  width:150px;margin:0 6px;
+  border-radius:14px;
+  padding:12px 10px;
+  background:rgba(139,92,246,.28);
+  border:1px solid rgba(255,255,255,.18);
+  color:white;font-weight:1000;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.strip:before,.strip:after{
+  content:"";position:absolute;top:0;width:70px;height:100%;z-index:2;pointer-events:none;
+}
+.strip:before{left:0;background:linear-gradient(90deg,#1b0a35,transparent)}
+.strip:after{right:0;background:linear-gradient(270deg,#1b0a35,transparent)}
+.status{
+  margin:12px auto 0;
+  width:370px;
+  text-align:center;
+  color:#f5f3ff;
+  font-size:15px;
+  font-weight:900;
+  padding:11px 12px;
+  border-radius:16px;
+  background:rgba(255,255,255,.09);
+  border:1px solid rgba(255,255,255,.15);
+}
+.hidden{display:none}
+@keyframes pulseWin{
+  0%,100%{transform:scale(1)}
+  50%{transform:scale(1.06)}
+}
+.winPulse{animation:pulseWin .7s ease-in-out infinite}
+</style>
+</head>
+<body>
+<div class="overlay">
+  <div class="header">
+    <div class="title">Giveaway Wheel</div>
+    <div class="keyword" id="keyword">!join</div>
+    <div class="count" id="count">0 entries</div>
+  </div>
+
+  <div class="wheelBox">
+    <div class="pointer"></div>
+    <div class="wheel" id="wheel"></div>
+    <div class="centerText">
+      <div>
+        <div class="small" id="centerSmall">Type keyword to enter</div>
+        <div class="idle" id="centerMain">Waiting...</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="strip">
+    <div class="names" id="names"></div>
+  </div>
+  <div class="status" id="status">Waiting for giveaway...</div>
+</div>
+
+<script>
+const socket = io();
+let state = {};
+let wheelRot = 0;
+
+function fitName(name){
+  return String(name || "Unknown").slice(0, 18);
+}
+
+function render(s){
+  state=s;
+  keyword.textContent = s.keyword || "!join";
+  if(s.hideCount){
+    count.classList.add("hidden");
+  }else{
+    count.classList.remove("hidden");
+    count.textContent = (s.count || 0) + " entr" + ((s.count || 0) === 1 ? "y" : "ies");
+  }
+  if(!s.rolling && s.lastWinner){
+    centerSmall.textContent = "Winner";
+    centerMain.textContent = fitName(s.lastWinner);
+    centerMain.className = "winner winPulse";
+    status.textContent = "Winner: " + fitName(s.lastWinner);
+  } else if(!s.rolling) {
+    centerSmall.textContent = "Type keyword to enter";
+    centerMain.textContent = "Waiting...";
+    centerMain.className = "idle";
+    status.textContent = s.connected ? "Live — accepting entries" : "Dashboard loaded";
+  }
+}
+
+function buildNames(list, winner){
+  names.innerHTML = "";
+  const base = list && list.length ? list : ["Waiting","For","Entries"];
+  let full = [];
+  for(let i=0;i<4;i++) full = full.concat(base);
+  if(winner) full.push(winner);
+  full.forEach(n=>{
+    const div=document.createElement("div");
+    div.className="nameItem";
+    div.textContent=fitName(n);
+    names.appendChild(div);
+  });
+  return full.length;
+}
+
+socket.on("state", render);
+
+socket.on("roll-start", data => {
+  centerSmall.textContent = "Rolling";
+  centerMain.textContent = "Good luck";
+  centerMain.className = "idle";
+  status.textContent = "Spinning for 5 seconds...";
+  if(!data.hideCount){
+    count.classList.remove("hidden");
+    count.textContent = data.count + " entries";
+  }else{
+    count.classList.add("hidden");
+  }
+  keyword.textContent = data.keyword || "!join";
+
+  const total = buildNames(data.names, data.winner);
+  names.style.transition = "none";
+  names.style.transform = "translateX(0px)";
+  wheel.style.transition = "none";
+  wheel.style.transform = "rotate(" + wheelRot + "deg)";
+
+  setTimeout(()=>{
+    wheelRot += 1800 + Math.floor(Math.random()*360);
+    wheel.style.transition = "transform 5s cubic-bezier(.08,.85,.12,1)";
+    wheel.style.transform = "rotate(" + wheelRot + "deg)";
+    names.style.transition = "transform 5s cubic-bezier(.08,.85,.12,1)";
+    const itemWidth = 162;
+    const finalOffset = Math.max(0, (total-3)*itemWidth);
+    names.style.transform = "translateX(-" + finalOffset + "px)";
+  }, 40);
+});
+
+socket.on("roll-finish", data => {
+  centerSmall.textContent = "Winner";
+  centerMain.textContent = fitName(data.winner);
+  centerMain.className = "winner winPulse";
+  status.textContent = "Winner: " + fitName(data.winner);
+});
+
+async function poll(){
+  try{
+    const s=await fetch("/api/state").then(r=>r.json());
+    render(s);
+  }catch(e){}
+}
+poll();
+setInterval(poll, 2500);
+</script>
+</body>
+</html>
