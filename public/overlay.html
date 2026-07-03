@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Compact Giveaway Spinner</title>
+<script src="/socket.io/socket.io.js"></script>
+<style>
+*{box-sizing:border-box}
+html,body{
+  margin:0;width:100%;height:100%;
+  background:transparent;overflow:hidden;
+  font-family:Inter,system-ui,Arial,sans-serif;
+}
+.card{
+  width:430px;height:132px;
+  padding:12px 14px;
+  border-radius:18px;
+  color:#fff;
+  background:
+    radial-gradient(circle at 18% 20%,rgba(168,85,247,.28),transparent 32%),
+    linear-gradient(135deg,rgba(24,10,46,.98),rgba(10,5,22,.98));
+  border:2px solid rgba(168,85,247,.7);
+  box-shadow:
+    0 14px 40px rgba(0,0,0,.45),
+    0 0 24px rgba(139,92,246,.25),
+    inset 0 0 25px rgba(139,92,246,.08);
+  position:relative;
+  overflow:hidden;
+}
+.top{
+  height:78px;
+  display:grid;
+  grid-template-columns:58px 1fr auto;
+  align-items:center;
+  gap:11px;
+}
+.avatar{
+  width:54px;height:54px;border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,#8b5cf6,#c084fc);
+  border:3px solid rgba(255,255,255,.92);
+  box-shadow:0 0 16px rgba(139,92,246,.55);
+  font-size:20px;font-weight:1000;
+  overflow:hidden;
+}
+.avatar img,.spinAvatar img{
+  width:100%;height:100%;object-fit:cover;display:block;
+}
+.meta{min-width:0}
+.label{
+  color:#c4b5fd;
+  font-size:10px;
+  line-height:1;
+  font-weight:1000;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  margin-bottom:5px;
+}
+.winner{
+  font-size:23px;
+  line-height:1;
+  font-weight:1000;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  text-shadow:0 0 14px rgba(192,132,252,.5);
+}
+.badge{
+  align-self:start;
+  margin-top:5px;
+  padding:5px 8px;
+  border-radius:999px;
+  color:#ede9fe;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.14);
+  font-size:10px;
+  font-weight:1000;
+}
+.bottom{
+  height:31px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:0 2px;
+  border-top:1px solid rgba(255,255,255,.11);
+}
+.keywordLabel{
+  color:#a78bfa;
+  font-size:9px;
+  font-weight:1000;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+.keyword{
+  color:#fff;
+  font-size:15px;
+  font-weight:1000;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.count{
+  margin-left:auto;
+  color:#d8ccff;
+  font-size:10px;
+  font-weight:900;
+}
+.hidden{display:none}
+.spinner{
+  position:absolute;
+  left:12px;right:12px;top:12px;
+  height:78px;
+  border-radius:13px;
+  overflow:hidden;
+  background:#0d0619;
+  border:1px solid rgba(255,255,255,.14);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .18s ease;
+  z-index:10;
+}
+.spinner.active{opacity:1}
+.track{
+  position:absolute;
+  left:0;top:0;height:100%;
+  display:flex;align-items:center;
+  will-change:transform;
+}
+.spinItem{
+  flex:0 0 154px;
+  height:58px;
+  margin:0 5px;
+  padding:8px 10px;
+  border-radius:12px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:linear-gradient(135deg,rgba(139,92,246,.3),rgba(255,255,255,.07));
+  border:1px solid rgba(255,255,255,.15);
+}
+.spinAvatar{
+  width:38px;height:38px;flex:0 0 38px;
+  border-radius:50%;
+  display:grid;place-items:center;
+  background:linear-gradient(135deg,#8b5cf6,#c084fc);
+  border:2px solid #fff;
+  font-size:13px;font-weight:1000;
+  overflow:hidden;
+}
+.spinName{
+  min-width:0;
+  font-size:13px;
+  font-weight:1000;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.marker{
+  position:absolute;
+  top:0;bottom:0;left:50%;
+  width:2px;
+  transform:translateX(-1px);
+  background:#fff;
+  box-shadow:0 0 12px #c084fc;
+  z-index:4;
+}
+.marker:before,.marker:after{
+  content:"";
+  position:absolute;left:50%;transform:translateX(-50%);
+  width:0;height:0;
+  border-left:6px solid transparent;
+  border-right:6px solid transparent;
+}
+.marker:before{top:0;border-top:8px solid #fff}
+.marker:after{bottom:0;border-bottom:8px solid #fff}
+@keyframes winnerPop{
+  0%{transform:scale(.94);filter:brightness(1.8)}
+  55%{transform:scale(1.04)}
+  100%{transform:scale(1)}
+}
+.pop{animation:winnerPop .6s ease-out}
+</style>
+</head>
+<body>
+<div class="card" id="card">
+  <div class="top">
+    <div class="avatar" id="avatar">?</div>
+    <div class="meta">
+      <div class="label" id="topLabel">Giveaway Ready</div>
+      <div class="winner" id="winner">Ready to roll</div>
+    </div>
+    <div class="badge" id="badge">WIN</div>
+  </div>
+
+  <div class="bottom">
+    <div class="keywordLabel">Current Keyword</div>
+    <div class="keyword" id="keyword">!join</div>
+    <div class="count" id="count">0 entries</div>
+  </div>
+
+  <div class="spinner" id="spinner">
+    <div class="marker"></div>
+    <div class="track" id="track"></div>
+  </div>
+</div>
+
+<script>
+const socket=io();
+let state={participants:[],participantDetails:[]};
+let rolling=false;
+
+function fit(v,n=18){return String(v||"Unknown").slice(0,n)}
+function initials(name){
+  const s=String(name||"?").trim();
+  if(!s)return "?";
+  const parts=s.split(/\s+/);
+  return (parts.length>1 ? parts[0][0]+parts[1][0] : s.slice(0,2)).toUpperCase();
+}
+function imageOrInitials(el,name,url){
+  el.innerHTML="";
+  if(url){
+    const img=document.createElement("img");
+    img.src=url;
+    img.alt="";
+    img.referrerPolicy="no-referrer";
+    img.onerror=()=>{
+      el.innerHTML="";
+      el.textContent=initials(name);
+    };
+    el.appendChild(img);
+  }else{
+    el.textContent=initials(name);
+  }
+}
+function detailMapFromState(s){
+  const map=new Map();
+  (s.participantDetails||[]).forEach(d=>map.set(String(d.username).toLowerCase(),d));
+  return map;
+}
+function detailsFromNames(names,details){
+  const map=new Map((details||[]).map(d=>[String(d.username).toLowerCase(),d]));
+  return (names||[]).map(n=>map.get(String(n).toLowerCase())||{username:n,avatar:null});
+}
+function render(s){
+  state=s;
+  keyword.textContent=s.keyword||"!join";
+  if(s.hideCount){
+    count.classList.add("hidden");
+  }else{
+    count.classList.remove("hidden");
+    count.textContent=(s.count||0)+" entr"+((s.count||0)===1?"y":"ies");
+  }
+  if(!rolling){
+    if(s.lastWinner){
+      topLabel.textContent="Current Winner";
+      winner.textContent=fit(s.lastWinner,22);
+      imageOrInitials(avatar,s.lastWinner,s.lastWinnerAvatar);
+    }else{
+      topLabel.textContent="Giveaway Ready";
+      winner.textContent=(s.count||0)>0 ? "Ready to roll" : "Waiting...";
+      imageOrInitials(avatar,s.channel||"W",s.channelAvatar||null);
+    }
+  }
+}
+function buildTrack(names,winner,participantDetails,winnerAvatar){
+  track.innerHTML="";
+  const baseDetails=detailsFromNames(names&&names.length?names:["Waiting"], participantDetails);
+  let items=[];
+  for(let i=0;i<8;i++) items=items.concat(baseDetails);
+  items.push({username:winner,avatar:winnerAvatar||null});
+  items.push(...baseDetails.slice(0,3));
+
+  items.forEach(d=>{
+    const item=document.createElement("div");
+    item.className="spinItem";
+    const av=document.createElement("div");
+    av.className="spinAvatar";
+    imageOrInitials(av,d.username,d.avatar);
+    const name=document.createElement("div");
+    name.className="spinName";
+    name.textContent=fit(d.username,16);
+    item.appendChild(av);
+    item.appendChild(name);
+    track.appendChild(item);
+  });
+  return {items,targetIndex:items.length-4};
+}
+socket.on("state",render);
+socket.on("entry-added",data=>render(data.state));
+socket.on("avatar-updated",data=>render(data.state));
+socket.on("reset-wheel",data=>{
+  rolling=false;
+  spinner.classList.remove("active");
+  render(data);
+});
+socket.on("roll-start",data=>{
+  rolling=true;
+  keyword.textContent=data.keyword||"!join";
+  if(data.hideCount) count.classList.add("hidden");
+  else{
+    count.classList.remove("hidden");
+    count.textContent=data.count+" entries";
+  }
+
+  topLabel.textContent="Rolling";
+  winner.textContent="Choosing winner...";
+  imageOrInitials(avatar,data.winner,data.winnerAvatar);
+  badge.textContent="5s";
+
+  const details=data.participantDetails || state.participantDetails || [];
+  const built=buildTrack(data.names||data.participants||[],data.winner,details,data.winnerAvatar);
+  spinner.classList.add("active");
+
+  track.style.transition="none";
+  track.style.transform="translateX(0px)";
+  void track.offsetWidth;
+
+  const itemWidth=164;
+  const spinnerWidth=406;
+  const targetCenter=built.targetIndex*itemWidth + itemWidth/2;
+  const finalX=-(targetCenter-spinnerWidth/2);
+
+  track.style.transition="transform 5s cubic-bezier(.08,.78,.08,1)";
+  track.style.transform=`translateX(${finalX}px)`;
+
+  let remaining=5;
+  const timer=setInterval(()=>{
+    remaining--;
+    badge.textContent=remaining>0 ? remaining+"s" : "WIN";
+    if(remaining<=0)clearInterval(timer);
+  },1000);
+});
+socket.on("roll-finish",data=>{
+  setTimeout(()=>{
+    rolling=false;
+    spinner.classList.remove("active");
+    topLabel.textContent="Current Winner";
+    winner.textContent=fit(data.winner,22);
+    imageOrInitials(avatar,data.winner,data.winnerAvatar);
+    badge.textContent="WIN";
+    card.classList.remove("pop");
+    void card.offsetWidth;
+    card.classList.add("pop");
+  },120);
+});
+async function poll(){
+  try{
+    const s=await fetch("/api/state").then(r=>r.json());
+    render(s);
+  }catch(e){}
+}
+poll();
+setInterval(poll,2500);
+</script>
+</body>
+</html>
