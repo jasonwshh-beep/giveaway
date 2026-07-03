@@ -1,0 +1,19 @@
+{
+  "name": "kick-keyword-wheel-giveaway-growing-wheel",
+  "version": "2.1.0",
+  "description": "Kick keyword giveaway wheel with growing visible entries",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "axios": "^1.7.9",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1",
+    "pusher-js": "^8.4.0-rc2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
